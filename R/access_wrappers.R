@@ -157,7 +157,9 @@ extractJointCountMatrix.Seurat <- function(object, raw = TRUE, transposed = TRUE
   
   # Select data matrix
   if (raw) {
-    dat <- raw_counts
+    dat <- raw_counts %>%
+      as("CsparseMatrix")
+    
   } else {
     # Try 'scale.data' slot, else fallback to 'data'
     sls <- slotNames(object@assays[[assay_name]])
@@ -168,8 +170,11 @@ extractJointCountMatrix.Seurat <- function(object, raw = TRUE, transposed = TRUE
     }
   }
   
-  if (transposed) {
-    dat <- Matrix::t(dat)
+  if (transposed){
+    dat %<>% Matrix::t()
+  }
+  if (is.matrix(dat) && sparse){
+    dat %<>% as("CsparseMatrix")
   }
   return(dat)
 }
