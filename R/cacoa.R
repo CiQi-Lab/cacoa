@@ -806,12 +806,13 @@ Cacoa <- R6::R6Class("Cacoa", lock_objects=FALSE,
         } else stop("Unknown color.by option: ", color.by)
       }
 
-      params$embedding <- embedding
+      params$object     <- embedding
       params$plot.theme <- plot.theme
       if (is.null(params$show.legend)) {
         params$show.legend <- !is.null(params$colors)
       }
-
+      
+      # dispatch into sccore v1.0.6 embeddingPlot()
       rlang::exec(sccore::embeddingPlot, !!!params)
     },
 
