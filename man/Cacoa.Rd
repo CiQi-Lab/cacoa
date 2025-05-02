@@ -12,13 +12,13 @@ The class encompasses etc etc
 ## Method `Cacoa$new`
 ## ------------------------------------------------
 
-# Is it highly recommended that sample.groups and cell.groups are assigned in the initialization call. 
+# Is it highly recommended that sample.groups and cell.groups are assigned in the initialization call.
 # Here, "con" is a Conos object.
 \dontrun{
 sample.groups <- c("control","control","disease","disease")
 names(sample.groups) <- names(con$samples)
 }
-# cell.groups should be a named factor where names are cell names corresponding to cell names in the data object. 
+# cell.groups should be a named factor where names are cell names corresponding to cell names in the data object.
 # For Conos objects, they should overlap with rownames(con$embedding)
 \dontrun{
 cell.groups <- my.named.annotation.factor
@@ -150,7 +150,7 @@ cao$estimateOntologyFamilies(name = "GSEA")
 cao$estimateDEPerCellType()
 cao$estimateOntology(name = "GSEA")
 cao$estimateOntologyFamilies(name = "GSEA")
-cao$getFamiliesPerGO(name = "GSEA", go.term = "antigen presentation") # Either go.term og go.id has to be specified 
+cao$getFamiliesPerGO(name = "GSEA", go.term = "antigen presentation") # Either go.term og go.id has to be specified
 }
 
 ## ------------------------------------------------
@@ -618,10 +618,11 @@ Initialize Cacoa class
   sample.groups.palette = NULL,
   cell.groups.palette = NULL,
   embedding = NULL,
-  graph.name = NULL,
-  assay.name = "RNA",
   n.cores = 1,
   verbose = TRUE,
+  graph.name = NULL,
+  assay.name = "RNA",
+  data.slot = "scale.data",
   plot.theme = ggplot2::theme_bw(),
   plot.params = NULL
 )}\if{html}{\out{</div>}}
@@ -648,13 +649,13 @@ Initialize Cacoa class
 
 \item{\code{embedding}}{embedding 2D embedding to visualize the cells in (default: extracted from \code{data.object})}
 
-\item{\code{graph.name}}{graph name for Seurat object, ignored otherwise (default=NULL)}
-
-\item{\code{assay.name}}{assay name for Seurat object, ignored otherwise (default="RNA")}
-
 \item{\code{n.cores}}{Number of cores for parallelization (default=1)}
 
 \item{\code{verbose}}{boolean Whether to provide verbose output with diagnostic messages (default=TRUE)}
+
+\item{\code{graph.name}}{graph name for Seurat object, ignored otherwise (default=NULL)}
+
+\item{\code{assay.name}}{assay name for Seurat object, ignored otherwise (default="RNA")}
 
 \item{\code{plot.theme}}{ggplot2 plot theme (default=ggplot2::theme_bw())}
 
@@ -667,13 +668,13 @@ a new 'Cacoa' object
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{# Is it highly recommended that sample.groups and cell.groups are assigned in the initialization call. 
+\preformatted{# Is it highly recommended that sample.groups and cell.groups are assigned in the initialization call.
 # Here, "con" is a Conos object.
 \dontrun{
 sample.groups <- c("control","control","disease","disease")
 names(sample.groups) <- names(con$samples)
 }
-# cell.groups should be a named factor where names are cell names corresponding to cell names in the data object. 
+# cell.groups should be a named factor where names are cell names corresponding to cell names in the data object.
 # For Conos objects, they should overlap with rownames(con$embedding)
 \dontrun{
 cell.groups <- my.named.annotation.factor
@@ -1474,7 +1475,7 @@ Data frame
 cao$estimateDEPerCellType()
 cao$estimateOntology(name = "GSEA")
 cao$estimateOntologyFamilies(name = "GSEA")
-cao$getFamiliesPerGO(name = "GSEA", go.term = "antigen presentation") # Either go.term og go.id has to be specified 
+cao$getFamiliesPerGO(name = "GSEA", go.term = "antigen presentation") # Either go.term og go.id has to be specified
 }
 }
 \if{html}{\out{</div>}}
