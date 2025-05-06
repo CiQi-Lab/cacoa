@@ -981,7 +981,7 @@ plotContrastTree <- function(d.counts, d.groups, ref.level, target.level, plot.t
   
   # Positions of inner nodes
   innode.pos <- unique(node.pos[,c('x','y','id')])
-  rownames(innode.pos) <- innode.pos$id
+  rownames(innode.pos) <- make.unique(as.character(innode.pos$id))
   # Ranges of inner nodes (length of branches)
   innode.pos$range <- -1
   for (i in 1:nrow(innode.pos)){
