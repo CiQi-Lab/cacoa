@@ -145,10 +145,10 @@ extractJointCountMatrix.Conos <- function(object, raw=TRUE) {
 #' @rdname extractJointCountMatrix
 extractJointCountMatrix.Seurat <- function(object, raw = TRUE, transposed = TRUE, sparse = TRUE) {
   # Choose assay and locate raw counts
-  if ("SCT" %in% Assays(object)) {
+  if ("SCT" %in% names(object@assays)) {
     assay_name <- "SCT"
     raw_counts <- object@assays$SCT@counts
-  } else if ("RNA" %in% Assays(object)) {
+  } else if ("RNA" %in% names(object@assays)) {
     assay_name <- "RNA"
     raw_counts <- object@assays$RNA@layers$counts
   } else {
