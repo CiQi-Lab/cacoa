@@ -87,9 +87,9 @@ extractRawCountMatrices.Conos <- function(object, transposed=TRUE) {
 #' @rdname extractRawCountMatrices
 extractRawCountMatrices.Seurat <- function(object, transposed = TRUE) {
   # Determine where counts are stored: SCT has counts in @counts, RNA in @layers$counts
-  if ("SCT" %in% Assays(object)) {
+  if ("SCT" %in% names(object@assays)) {
     counts_mat <- object@assays$SCT@counts
-  } else if ("RNA" %in% Assays(object)) {
+  } else if ("RNA" %in% names(object@assays)) {
     counts_mat <- object@assays$RNA@layers$counts
   } else {
     stop("Neither SCT nor RNA assay found in the Seurat object.")
