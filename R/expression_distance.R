@@ -30,6 +30,7 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
 
   n.cores.inner <- max(n.cores %/% length(levels(cell.groups)), 1)
   res.per.type <- levels(cell.groups) %>% sccore::sn() %>% plapply(function(ct) {
+    
     cm.norm <- cm.per.type[[ct]]
     dist.mat <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sample.groups, dist=dist, n.pcs=n.pcs,
                                                     top.n.genes=top.n.genes, gene.selection=gene.selection, ...)
@@ -55,18 +56,21 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
     pvalue <- (sum(randomized.dists >= obs.diff) + 1) / (sum(!is.na(randomized.dists)) + 1)
     dists <- dists - median(randomized.dists, na.rm=TRUE)
 
-    list(dists=dists, dist.mat=dist.mat, pvalue=pvalue)
+    list(cm.norm=cm.norm, dists=dists, dist.mat=dist.mat, pvalue=pvalue)
   }, progress=verbose, n.cores=n.cores, mc.preschedule=TRUE, mc.allow.recursive=TRUE, fail.on.error=TRUE)
 
   if (verbose) message("Done!\n")
-
+  
+  
+  cm.norm <- lapply(res.per.type, `[[`, "cm.norm")
+  dist.mat <- lapply(res.per.type, `[[`, "dist.mat")
   pvalues <- sapply(res.per.type, `[[`, "pvalue")
   dists.per.type <- lapply(res.per.type, `[[`, "dists")
   p.dist.info <- lapply(res.per.type, `[[`, "dist.mat")
 
   padjust <- p.adjust(pvalues, method=p.adjust.method)
 
-  return(list(dists.per.type=dists.per.type, p.dist.info=p.dist.info, sample.groups=sample.groups,
+  return(list(cm.per.type = cm.per.type, cm.norm = cm.norm, dist.mat = dist.mat, dists.per.type=dists.per.type, p.dist.info=p.dist.info, sample.groups=sample.groups,
               cell.groups=cell.groups, pvalues=pvalues, padjust=padjust))
 }
 
