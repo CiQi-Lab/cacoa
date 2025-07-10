@@ -17,7 +17,7 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
                                      top.n.genes=NULL, gene.selection="wilcox", n.pcs=NULL,
                                      trim=0.2, n.cores=1, ...) {
   dist.type <- match.arg(dist.type)
-  dist <- parseDistance(dist, top.n.genes=top.n.genes, n.pcs=n.pcs)
+  dist <- cacoa:::parseDistance(dist, top.n.genes=top.n.genes, n.pcs=n.pcs)
 
   norm.type <- ifelse(dist.type == "shift", "both", "ref")
   r.type <- ifelse(dist.type == "var", "target", "cross")
