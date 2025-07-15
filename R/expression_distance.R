@@ -17,29 +17,28 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
                                      top.n.genes=NULL, gene.selection="wilcox", n.pcs=NULL,
                                      trim=0.2, n.cores=1, ...) {
   dist.type <- match.arg(dist.type)
-  dist <- cacoa:::parseDistance(dist, top.n.genes=top.n.genes, n.pcs=n.pcs)
-
+  dist <- parseDistance(dist, top.n.genes=top.n.genes, n.pcs=n.pcs)
+  
   norm.type <- ifelse(dist.type == "shift", "both", "ref")
   r.type <- ifelse(dist.type == "var", "target", "cross")
-
+  
   cell.groups %<>% as.factor() %>% droplevels()
-
+  
   sample.type.table <- cell.groups %>% table(sample.per.cell[names(.)]) # table of sample types and cells
-
+  
   if (verbose) message("Calculating pairwise distances using dist='", dist, "'...\n", sep="")
-
+  
   n.cores.inner <- max(n.cores %/% length(levels(cell.groups)), 1)
   res.per.type <- levels(cell.groups) %>% sccore::sn() %>% plapply(function(ct) {
-    
     cm.norm <- cm.per.type[[ct]]
     dist.mat <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sample.groups, dist=dist, n.pcs=n.pcs,
                                                     top.n.genes=top.n.genes, gene.selection=gene.selection, ...)
     attr(dist.mat, 'n.cells') <- sample.type.table[ct, rownames(cm.norm)] # calculate how many cells there are
-
+    
     dists <- estimateExpressionShiftsByDistMat(dist.mat, sample.groups, norm.type=norm.type,
                                                return.type=r.type, ref.level=ref.level)
     obs.diff <- mean(dists, trim=trim)
-
+    
     randomized.dists <- plapply(1:n.permutations, function(i) {
       sg.shuff <- sample.groups[rownames(cm.norm)] %>% as.factor() %>%
         droplevels() %>% {setNames(sample(.), names(.))}
@@ -48,30 +47,28 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
         dm <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sg.shuff, dist=dist, n.pcs=n.pcs,
                                                   top.n.genes=top.n.genes, gene.selection=gene.selection, ...)
       }
-
+      
       estimateExpressionShiftsByDistMat(dm, sg.shuff, norm.type=norm.type, return.type=r.type, ref.level=ref.level) %>%
         mean(trim=trim)
     }, progress=FALSE, n.cores=n.cores.inner, mc.preschedule=TRUE, fail.on.error=TRUE) %>% unlist()
-
+    
     pvalue <- (sum(randomized.dists >= obs.diff) + 1) / (sum(!is.na(randomized.dists)) + 1)
     dists <- dists - median(randomized.dists, na.rm=TRUE)
-
-    list(cm.norm=cm.norm, dists=dists, dist.mat=dist.mat, pvalue=pvalue, randomized.dists = randomized.dists)
+    
+    list(dists=dists, dist.mat=dist.mat, pvalue=pvalue, randomized.dists = randomized.dists)
   }, progress=verbose, n.cores=n.cores, mc.preschedule=TRUE, mc.allow.recursive=TRUE, fail.on.error=TRUE)
-
+  
   if (verbose) message("Done!\n")
   
-  
-  cm.norm <- lapply(res.per.type, `[[`, "cm.norm")
   pvalues <- sapply(res.per.type, `[[`, "pvalue")
   dists.per.type <- lapply(res.per.type, `[[`, "dists")
   randomized.dists <- lapply(res.per.type, `[[`, "randomized.dists")
   p.dist.info <- lapply(res.per.type, `[[`, "dist.mat")
-
+  
   padjust <- p.adjust(pvalues, method=p.adjust.method)
-
-  return(list(cm.norm = cm.norm, dist.mat = dist.mat, dists.per.type=dists.per.type, p.dist.info=p.dist.info, sample.groups=sample.groups,
-              cell.groups=cell.groups, pvalues=pvalues, padjust=padjust, randomized.dists = randomized.dists))
+  
+  return(list(dists.per.type=dists.per.type, p.dist.info=p.dist.info, randomized.dists = randomized.dists, sample.groups=sample.groups,
+              cell.groups=cell.groups, pvalues=pvalues, padjust=padjust))
 }
 
 
@@ -85,18 +82,18 @@ estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, to
     )
     cm.norm <- cm.norm[,sel.genes,drop=FALSE]
   }
-
+  
   if (!is.null(n.pcs)) {
     min.dim <- min(dim(cm.norm)) - 1
     if (n.pcs > min.dim) {
       n.pcs <- min.dim
       warning("n.pcs is too large. Setting it to maximal allowed value ", min.dim)
     }
-
+    
     pcs <- svd(cm.norm, nv=n.pcs, nu=0)
     cm.norm <- as.matrix(cm.norm %*% pcs$v)
   }
-
+  
   if (dist == 'cor') {
     dist.mat <- 1 - cor(t(cm.norm))
   } else if (dist == 'l2') {
@@ -106,7 +103,7 @@ estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, to
   } else {
     stop("Unknown distance: ", dist)
   }
-
+  
   dist.mat[is.na(dist.mat)] <- 1;
   return(dist.mat)
 }
@@ -118,9 +115,9 @@ subsetDistanceMatrix <- function(dist.mat, sample.groups, cross.factor, build.df
   diag(dist.mat) <- NA;
   if (!build.df)
     return(na.omit(dist.mat[selection.mask]))
-
+  
   dist.mat[!selection.mask] <- NA;
-
+  
   if(all(is.na(dist.mat))) return(NULL);
   dist.df <- reshape2::melt(dist.mat) %>% na.omit()
   return(dist.df);
@@ -132,10 +129,10 @@ estimateExpressionShiftsByDistMat <- function(dist.mat, sample.groups, norm.type
                                               ref.level=NULL, return.type=c("cross", "target")) {
   norm.type <- match.arg(norm.type)
   return.type <- match.arg(return.type)
-
+  
   if (((norm.type == "ref") || (return.type == "target")) && is.null(ref.level))
     stop("ref.level has to be provided for norm.type='ref' or return.type='target'")
-
+  
   sample.groups %<>% .[rownames(dist.mat)]
   if (norm.type == "both") {
     sg1 <- levels(sample.groups)[1]
@@ -150,7 +147,7 @@ estimateExpressionShiftsByDistMat <- function(dist.mat, sample.groups, norm.type
   } else {
     norm.const <- 0
   }
-
+  
   dist.mat <- dist.mat - norm.const
   if (return.type == "cross") {
     dists <- subsetDistanceMatrix(dist.mat, sample.groups=sample.groups, cross.factor=TRUE)
@@ -159,7 +156,7 @@ estimateExpressionShiftsByDistMat <- function(dist.mat, sample.groups, norm.type
       .[(sample.groups[rownames(.)] != ref.level), (sample.groups[colnames(.)] != ref.level)] %>%
       .[upper.tri(.)]
   }
-
+  
   return(dists)
 }
 
@@ -171,7 +168,7 @@ joinExpressionShiftDfs <- function(dist.df.per.type, sample.groups) {
     do.call(rbind, .) %>%
     mutate(Condition=sample.groups[as.character(Var1)]) %>%
     na.omit()
-
+  
   return(df)
 }
 
@@ -180,7 +177,7 @@ prepareJointExpressionDistance <- function(p.dist.per.type, sample.groups=NULL, 
   checkPackageInstalled(c("abind"), cran=TRUE)
   # bring to a common set of cell types
   common.types <- lapply(p.dist.per.type, colnames) %>% unlist() %>% unique()
-
+  
   p.dist.per.type %<>% lapply(function(x) {
     y <- matrix(0,nrow=length(common.types),ncol=length(common.types));  # can set the missing entries to zero, as they will carry zero weights
     rownames(y) <- colnames(y) <- common.types;
@@ -190,26 +187,26 @@ prepareJointExpressionDistance <- function(p.dist.per.type, sample.groups=NULL, 
     attr(y, 'n.cells') <- ycct
     y
   }) # reform the matrix to make sure all cell type have the same dimensions
-
+  
   x <- abind::abind(lapply(p.dist.per.type, function(x) {
     nc <- attr(x, 'n.cells')
     #wm <- (outer(nc,nc,FUN='pmin'))
     wm <- sqrt(outer(nc, nc, FUN = 'pmin'))
     return(x * wm)
   }), along = 3)
-
+  
   # just the weights (for total sum of weights normalization)
   y <- abind::abind(lapply(p.dist.per.type, function(x) {
     nc <- attr(x, 'n.cells')
     sqrt(outer(nc, nc, FUN = 'pmin'))
   }), along = 3)
-
+  
   # normalize by total weight sums
   xd <- apply(x, c(1, 2), sum) / apply(y, c(1, 2), sum)
-
+  
   if (return.dists)
     return(xd)
-
+  
   cross.factor <- outer(sample.groups[rownames(xd)], sample.groups[colnames(xd)], '==')
   diag(xd) <- NA # remove self pairs
   # restrict
@@ -220,7 +217,7 @@ prepareJointExpressionDistance <- function(p.dist.per.type, sample.groups=NULL, 
   xmd2 <- na.omit(xmd2)
   xmd2$type1 <- sample.groups[as.character(xmd2$Var1)]
   xmd2$type2 <- sample.groups[as.character(xmd2$Var2)]
-
+  
   return(xmd2)
 }
 
@@ -230,18 +227,18 @@ filterCellTypesByNSamples <- function(cell.groups, sample.per.cell, sample.group
   freq.table <- table(Type=cell.groups, Sample=sample.per.cell) %>% as.data.frame() %>%
     mutate(Condition=sample.groups[as.character(Sample)]) %>%
     filter(Freq >= min.cells.per.sample)
-
+  
   if (length(unique(freq.table$Condition)) != 2)
     stop("'sample.groups' must be a 2-level factor describing which samples are being contrasted")
-
+  
   removed.types <- freq.table %>% split(.$Type) %>% sapply(function(df) {
     df %$% split(Sample, Condition) %>% sapply(length) %>% {any(. < min.samp.per.type)}
   }) %>% which() %>% names()
-
+  
   if (verbose && (length(removed.types) > 0)) {
     message("Excluding cell types ", paste(removed.types, collapse=", "), " that don't have enough samples\n")
   }
-
+  
   freq.table %<>% filter(!(Type %in% removed.types))
   return(freq.table)
 }
@@ -256,14 +253,14 @@ filterExpressionDistanceInput <- function(cms, cell.groups, sample.per.cell, sam
     cell.groups[cell.names], sample.per.cell[cell.names], sample.groups=sample.groups,
     min.cells.per.sample=min.cells.per.sample, min.samp.per.type=min.samp.per.type, verbose=verbose
   )
-
+  
   filt.types.per.samp <- freq.table %$% split(Type, Sample)
   cms.filt <- names(filt.types.per.samp) %>% sn() %>% lapply(function(n) {
     cms[[n]] %>% .[cell.groups[rownames(.)] %in% filt.types.per.samp[[n]],, drop=FALSE]
   })
-
+  
   cell.names <- lapply(cms.filt, rownames) %>% unlist()
-
+  
   # Filter low-expressed genes
   if (is.null(genes)) {
     genes <- lapply(cms.filt, function(cm) {
@@ -271,20 +268,20 @@ filterExpressionDistanceInput <- function(cms, cell.groups, sample.per.cell, sam
       names(which(colMeans(cm) > min.gene.frac))
     }) %>% unlist() %>% table() %>% {. / length(cms.filt) > 0.1} %>% which() %>% names()
   }
-
+  
   # Collapse matrices and extend to the same genes
   cms.filt %<>% lapply(collapseCellsByType, groups=cell.groups, min.cell.count=1)
-
+  
   cms.filt %<>% lapply(sccore::extendMatrix, genes) %>% lapply(`[`,,genes, drop=FALSE)
-
+  
   # Group matrices by cell type
   cell.groups <- droplevels(cell.groups[cell.names])
-
+  
   cm.per.type <- levels(cell.groups) %>% sccore::sn() %>% lapply(function(ct) {
     lapply(cms.filt, function(x) if (ct %in% rownames(x)) x[ct,] else NULL) %>%
       do.call(rbind, .) %>% {. / pmax(1, rowSums(.))} %>% {log10(. * 1e3 + 1)}
   })
-
+  
   return(list(cm.per.type=cm.per.type, cell.groups=cell.groups, sample.groups=sample.groups[names(cms)]))
 }
 
@@ -295,7 +292,7 @@ estimateExplainedVariance <- function(cm, sample.groups) {
   if (length(spg) == 1){
     return(NULL)
   }
-
+  
   sapply(spg, function(spc) matrixStats::colVars(cm[spc,,drop=FALSE]) * (length(spc) - 1)) %>%
     rowSums(na.rm=TRUE) %>%
     {1 - (. / (matrixStats::colVars(cm) * (nrow(cm) - 1)))} %>%
@@ -306,7 +303,7 @@ estimateExplainedVariance <- function(cm, sample.groups) {
 filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene.selection=c("wilcox", "var", "od"),
                                    exclude.genes=NULL) {
   gene.selection <- match.arg(gene.selection)
-
+  
   if (gene.selection == "var") {
     sel.genes <- estimateExplainedVariance(cm.norm, sample.groups=sample.groups) %>%
       sort(decreasing=TRUE) %>% names()
@@ -322,7 +319,7 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
     p2$adjustVariance(verbose=FALSE)
     sel.genes <- p2$getOdGenes(Inf)
   }
-
+  
   sel.genes %<>% setdiff(exclude.genes) %>% head(top.n.genes)
   return(sel.genes)
 }
@@ -334,7 +331,7 @@ parseDistance <- function(dist, top.n.genes, n.pcs) {
     dist <- ifelse(n.comps < 20, 'l1', 'cor')
     return(dist)
   }
-
+  
   dist %<>% tolower()
   if (dist == 'l2') {
     warning("Using dist='l2' is not recommended, as it may introduce unwanted dependency ",
@@ -352,6 +349,6 @@ parseDistance <- function(dist, top.n.genes, n.pcs) {
   } else {
     stop("Unknown dist: ", dist)
   }
-
+  
   return(dist)
 }
