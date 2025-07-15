@@ -65,7 +65,7 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
   cm.norm <- lapply(res.per.type, `[[`, "cm.norm")
   pvalues <- sapply(res.per.type, `[[`, "pvalue")
   dists.per.type <- lapply(res.per.type, `[[`, "dists")
-  randomized.dists <- lapply(res.per.type, `[[`, "randomized.distsde")
+  randomized.dists <- lapply(res.per.type, `[[`, "randomized.dists")
   p.dist.info <- lapply(res.per.type, `[[`, "dist.mat")
 
   padjust <- p.adjust(pvalues, method=p.adjust.method)
