@@ -55,7 +55,7 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
     pvalue <- (sum(randomized.dists >= obs.diff) + 1) / (sum(!is.na(randomized.dists)) + 1)
     dists <- dists - median(randomized.dists, na.rm=TRUE)
     
-    list(dists=dists, dist.mat=dist.mat, pvalue=pvalue, randomized.dists = randomized.dists)
+    list(cm.norm = cm.norm, dists=dists, dist.mat=dist.mat, pvalue=pvalue, randomized.dists = randomized.dists)
   }, progress=verbose, n.cores=n.cores, mc.preschedule=TRUE, mc.allow.recursive=TRUE, fail.on.error=TRUE)
   
   if (verbose) message("Done!\n")
@@ -67,7 +67,7 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
   
   padjust <- p.adjust(pvalues, method=p.adjust.method)
   
-  return(list(dists.per.type=dists.per.type, p.dist.info=p.dist.info, randomized.dists = randomized.dists, sample.groups=sample.groups,
+  return(list(cm.norm = cm.norm, dists.per.type=dists.per.type, p.dist.info=p.dist.info, randomized.dists = randomized.dists, sample.groups=sample.groups,
               cell.groups=cell.groups, pvalues=pvalues, padjust=padjust))
 }
 
