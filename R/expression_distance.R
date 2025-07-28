@@ -55,12 +55,12 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
     pvalue <- (sum(randomized.dists >= obs.diff) + 1) / (sum(!is.na(randomized.dists)) + 1)
     dists <- dists - median(randomized.dists, na.rm=TRUE)
     
-    list(cm.per.type = cm.per.type, dists=dists, dist.mat=dist.mat, pvalue=pvalue, randomized.dists = randomized.dists)
+    list(cm.norm = cm.norm, dists=dists, dist.mat=dist.mat, pvalue=pvalue, randomized.dists = randomized.dists)
   }, progress=verbose, n.cores=n.cores, mc.preschedule=TRUE, mc.allow.recursive=TRUE, fail.on.error=TRUE)
   
   if (verbose) message("Done!\n")
   
-  cm.per.type <- lapply(res.per.type, `[[`, "cm.per.type")
+  cm.norm <- lapply(res.per.type, `[[`, "cm.norm")
   pvalues <- sapply(res.per.type, `[[`, "pvalue")
   dists.per.type <- lapply(res.per.type, `[[`, "dists")
   randomized.dists <- lapply(res.per.type, `[[`, "randomized.dists")
