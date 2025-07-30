@@ -320,9 +320,9 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
   } else if (gene.selection == "wilcox") {
     spg <- rownames(cm.norm) %>% split(sample.groups[.])
     test.res <- matrixTests::col_wilcoxon_twosample(cm.norm[spg[[1]],,drop=FALSE], cm.norm[spg[[2]],,drop=FALSE], exact=FALSE)$pvalue
+    sel.genes <- test.res %>% setNames(colnames(cm.norm)) %>% sort() %>% names()
     test.res <- sort(test.res)
     print(head(test.res, 100))
-    sel.genes <- test.res %>% setNames(colnames(cm.norm)) %>% sort() %>% names()
   } else {
     checkPackageInstalled("pagoda2", details="for gene.selection='od'", cran=TRUE)
     # TODO: we need to extract the OD function from Pagoda and scITD into sccore
