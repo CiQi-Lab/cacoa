@@ -33,14 +33,8 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
   saveRDS(cm.per.type, file.path(saved.folder, "pseudobulk_counts_matrix.rds")) 
   res.per.type <- levels(cell.groups) %>% sccore::sn() %>% plapply(function(ct) {
     cm.norm <- cm.per.type[[ct]]
-    gene.output <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sample.groups,
-                                                   dist=dist, n.pcs=n.pcs,
-                                                   top.n.genes=top.n.genes,
-                                                   gene.selection=gene.selection, ...)
-    dist.mat <- gene.output$dist.mat
-    sel.genes <- gene.output$sel.genes
-    test.res <- gene.output$test.res
-    
+    dist.mat <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sample.groups, dist=dist, n.pcs=n.pcs,
+                                                    top.n.genes=top.n.genes, gene.selection=gene.selection, ...)
     attr(dist.mat, 'n.cells') <- sample.type.table[ct, rownames(cm.norm)] # calculate how many cells there are
     
     dists <- estimateExpressionShiftsByDistMat(dist.mat, sample.groups, norm.type=norm.type,
@@ -63,9 +57,7 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
     pvalue <- (sum(randomized.dists >= obs.diff) + 1) / (sum(!is.na(randomized.dists)) + 1)
     dists <- dists - median(randomized.dists, na.rm=TRUE)
     
-    list(cm.norm = cm.norm, dists=dists, dist.mat=dist.mat, pvalue=pvalue,
-     randomized.dists = randomized.dists, sel.genes = sel.genes,
-     test.res = test.res)
+    list(cm.norm = cm.norm, dists=dists, dist.mat=dist.mat, pvalue=pvalue, randomized.dists = randomized.dists)
   }, progress=verbose, n.cores=n.cores, mc.preschedule=TRUE, mc.allow.recursive=TRUE, fail.on.error=TRUE)
   
   if (verbose) message("Done!\n")
@@ -80,39 +72,24 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
   saveRDS(randomized.dists, file.path(saved.folder, "randomized_dists_per_ct.rds"))
   p.dist.info <- lapply(res.per.type, `[[`, "dist.mat")
   saveRDS(p.dist.info, file.path(saved.folder, "sample_distances_per_ct.rds"))
-  sel.genes.all <- lapply(res.per.type, `[[`, "sel.genes")
-  test.res.all <- lapply(res.per.type, `[[`, "test.res")
   
   padjust <- p.adjust(pvalues, method=p.adjust.method)
   saveRDS(padjust, file.path(saved.folder, "exp_pvalues_adj.rds"))
   
-  return(list(cm.per.type = cm.per.type, 
-            dists.per.type=dists.per.type,
-            p.dist.info=p.dist.info, 
-            randomized.dists=randomized.dists,
-            sample.groups=sample.groups,
-            cell.groups=cell.groups,
-            pvalues=pvalues,
-            padjust=padjust,
-            sel.genes=sel.genes.all,
-            test.res=test.res.all))
+  return(list(cm.per.type = cm.per.type, dists.per.type=dists.per.type, p.dist.info=p.dist.info, randomized.dists = randomized.dists, sample.groups=sample.groups,
+              cell.groups=cell.groups, pvalues=pvalues, padjust=padjust))
 }
 
 
 #' @keywords internal
 estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, top.n.genes=NULL, n.pcs=NULL,
                                                 gene.selection="wilcox", exclude.genes=NULL) {
-  sel.genes <- NULL
-  test.res <- NULL
-  
   if (!is.null(top.n.genes)) {
-    gene.output <- filterGenesForCellType(
-      cm.norm, sample.groups=sample.groups, top.n.genes=top.n.genes,
-      gene.selection=gene.selection, exclude.genes=exclude.genes
+    sel.genes <- filterGenesForCellType(
+      cm.norm, sample.groups=sample.groups, top.n.genes=top.n.genes, gene.selection=gene.selection,
+      exclude.genes=exclude.genes
     )
-    sel.genes <- gene.output$sel.genes
-    test.res <- gene.output$test.res
-    cm.norm <- cm.norm[, sel.genes, drop=FALSE]
+    cm.norm <- cm.norm[,sel.genes,drop=TRUE]
   }
   
   if (!is.null(n.pcs)) {
@@ -137,7 +114,7 @@ estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, to
   }
   
   dist.mat[is.na(dist.mat)] <- 1;
-  return(list(dist.mat=dist.mat, sel.genes=sel.genes, test.res=test.res))
+  return(dist.mat)
 }
 
 #' @keywords internal
@@ -354,7 +331,7 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
   
   sel.genes %<>% setdiff(exclude.genes) %>% head(top.n.genes)
   # saveRDS(sel.genes, file.path(saved.folder, "sel_genes.RDS"))
-  return(list(sel.genes = sel.genes, test.res = test.res))
+  return(sel.genes)
 }
 
 #' @keywords internal
