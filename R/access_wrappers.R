@@ -84,33 +84,14 @@ extractRawCountMatrices.Conos <- function(object, transposed=TRUE) {
 }
 
 #' @rdname extractRawCountMatrices
-#' @rdname extractRawCountMatrices
-extractRawCountMatrices.Seurat <- function(object, transposed = TRUE) {
-  # Determine where counts are stored: SCT has counts in @counts, RNA in @layers$counts
-  if ("SCT" %in% names(object@assays)) {
-    counts_mat <- object@assays$SCT@counts
-  } else if ("RNA" %in% names(object@assays)) {
-    counts_mat <- object@assays$RNA@layers$counts
-  } else {
-    stop("Neither SCT nor RNA assay found in the Seurat object.")
-  }
-  
-  # Split cell names by sample.per.cell and extract counts per sample
-  cms <- split(names(object$sample.per.cell), object$sample.per.cell) %>%
-    lapply(function(cids) {
-      cols <- colnames(counts_mat) %in% cids
-      obj <- counts_mat[, cols, drop = FALSE]
-      colnames(obj) <- colnames(counts_mat)[cols]
-      rownames(obj) <- rownames(counts_mat)
-      obj
-    })
-  
+extractRawCountMatrices.Seurat <- function(object, transposed=TRUE) {
+  cms <- object$sample.per.cell %>% {split(names(.), .)} %>%
+    lapply(function(cids) object@assays[[object@misc$assay.name]]@counts[,cids])
   if (transposed) {
-    cms <- lapply(cms, Matrix::t)
+    cms %<>% lapply(Matrix::t)
   }
   return(cms)
 }
-
 
 #' @rdname extractRawCountMatrices
 extractRawCountMatrices.dgCMatrix <- function(object, transposed=TRUE) {
@@ -122,6 +103,7 @@ extractRawCountMatrices.dgCMatrix <- function(object, transposed=TRUE) {
   }
   return(cms)
 }
+
 
 
 
