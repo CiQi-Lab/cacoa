@@ -89,7 +89,7 @@ estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, to
       cm.norm, sample.groups=sample.groups, top.n.genes=top.n.genes, gene.selection=gene.selection,
       exclude.genes=exclude.genes
     )
-    cm.norm <- cm.norm[,sel.genes,drop=FALSE]
+    cm.norm <- cm.norm[,sel.genes,drop=TRUE]
   }
   
   if (!is.null(n.pcs)) {
