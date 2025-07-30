@@ -318,7 +318,7 @@ Cacoa <- R6::R6Class("Cacoa", lock_objects=FALSE,
         estimateExpressionChange(
           cm.per.type, sample.groups=sample.groups, cell.groups=cell.groups, sample.per.cell=self$sample.per.cell,
           dist=dist, dist.type=dist.type, verbose=verbose, ref.level=ref.level,
-          n.permutations=n.permutations, top.n.genes=top.n.genes, n.pcs=n.pcs, n.cores=n.cores, ...
+          n.permutations=n.permutations, top.n.genes=top.n.genes, n.pcs=n.pcs, n.cores=n.cores, saved.folder = saved.folder, ...
         )
 
       return(invisible(self$test.results[[name]]))
