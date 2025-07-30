@@ -84,14 +84,33 @@ extractRawCountMatrices.Conos <- function(object, transposed=TRUE) {
 }
 
 #' @rdname extractRawCountMatrices
-extractRawCountMatrices.Seurat <- function(object, transposed=TRUE) {
-  cms <- object$sample.per.cell %>% {split(names(.), .)} %>%
-    lapply(function(cids) object@assays[[object@misc$assay.name]]@counts[,cids])
+#' @rdname extractRawCountMatrices
+extractRawCountMatrices.Seurat <- function(object, transposed = TRUE) {
+  # Determine where counts are stored: SCT has counts in @counts, RNA in @layers$counts
+  if ("SCT" %in% names(object@assays)) {
+    counts_mat <- object@assays$SCT@counts
+  } else if ("RNA" %in% names(object@assays)) {
+    counts_mat <- object@assays$RNA@layers$counts
+  } else {
+    stop("Neither SCT nor RNA assay found in the Seurat object.")
+  }
+  
+  # Split cell names by sample.per.cell and extract counts per sample
+  cms <- split(names(object$sample.per.cell), object$sample.per.cell) %>%
+    lapply(function(cids) {
+      cols <- colnames(counts_mat) %in% cids
+      obj <- counts_mat[, cols, drop = FALSE]
+      colnames(obj) <- colnames(counts_mat)[cols]
+      rownames(obj) <- rownames(counts_mat)
+      obj
+    })
+  
   if (transposed) {
-    cms %<>% lapply(Matrix::t)
+    cms <- lapply(cms, Matrix::t)
   }
   return(cms)
 }
+
 
 #' @rdname extractRawCountMatrices
 extractRawCountMatrices.dgCMatrix <- function(object, transposed=TRUE) {
@@ -103,8 +122,6 @@ extractRawCountMatrices.dgCMatrix <- function(object, transposed=TRUE) {
   }
   return(cms)
 }
-
-
 
 
 
@@ -124,31 +141,45 @@ extractJointCountMatrix.Conos <- function(object, raw=TRUE) {
 
 #' @param transposed boolean If TRUE, return merged transposed count matrices (default=TRUE)
 #' @param sparse boolean If TRUE, return merged the sparse dgCMatrix matrix (default=TRUE)
-#' @rdname extractRawCountMatrices
-extractRawCountMatrices.Seurat <- function(object, transposed = TRUE) {
-  # Always pull from RNA assay counts (Assay5 style)
-  if (!"RNA" %in% names(object@assays)) {
-    stop("RNA assay not found in the Seurat object.")
+#' @rdname extractJointCountMatrix
+extractJointCountMatrix.Seurat <- function(object, raw=TRUE, transposed=TRUE, sparse=TRUE) {
+  # TODO: Seurat v5 deprecated `slot` in favor of `layer`
+  if (raw) {
+    dat <- object %>% 
+      Seurat::GetAssayData(slot='counts', assay=.@misc$assay.name) %>%
+      as("CsparseMatrix")
+    if (transposed){
+      dat %<>% Matrix::t()
+    }
+    return(dat)
   }
-  
-  counts_mat <- object@assays$RNA@layers$counts
-  
-  # Split cell names by sample.per.cell and extract counts per sample
-  cms <- split(names(object$sample.per.cell), object$sample.per.cell) %>%
-    lapply(function(cids) {
-      cols <- colnames(counts_mat) %in% cids
-      obj <- counts_mat[, cols, drop = FALSE]
-      colnames(obj) <- colnames(counts_mat)[cols]
-      rownames(obj) <- rownames(counts_mat)
-      obj
-    })
-  
-  # Transpose if requested
-  if (transposed) {
-    cms <- lapply(cms, Matrix::t)
+
+  slot <- object@misc$data.slot
+  dat <- NULL
+  if (is.null(slot) || slot == 'scale.data') {
+    dat <- Seurat::GetAssayData(object, slot='scale.data', assay=object@misc$assay.name)
+    dims <- dim(dat)
+    dat.na <- all(dims == 1) && all(is.na(x = dat))
+    if (any(dims == 0) || dat.na) {
+      slot <- 'data'
+    }
   }
-  
-  return(cms)
+
+  if (slot == 'data') {
+    dat <- Seurat::GetAssayData(object, slot='data', assay=object@misc$assay.name)
+  }
+
+  if (is.null(dat) || any(dim(dat) == 0)) {
+    stop("Can't access data slot ", slot)
+  }
+
+  if (transposed){
+    dat %<>% Matrix::t()
+  }
+  if (is.matrix(dat) && sparse){
+    dat %<>% as("CsparseMatrix")
+  }
+  return(dat)
 }
 
 #' @rdname extractJointCountMatrix
