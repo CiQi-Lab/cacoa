@@ -89,7 +89,8 @@ estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, to
       cm.norm, sample.groups=sample.groups, top.n.genes=top.n.genes, gene.selection=gene.selection,
       exclude.genes=exclude.genes
     )
-    cm.norm <- cm.norm[,sel.genes,drop=TRUE]
+    cm.norm <- cm.norm[,sel.genes,drop=FALSE]
+    print(dim(cm.norm))
   }
   
   if (!is.null(n.pcs)) {
@@ -319,6 +320,7 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
   } else if (gene.selection == "wilcox") {
     spg <- rownames(cm.norm) %>% split(sample.groups[.])
     test.res <- matrixTests::col_wilcoxon_twosample(cm.norm[spg[[1]],,drop=FALSE], cm.norm[spg[[2]],,drop=FALSE], exact=FALSE)$pvalue
+    print(test.res)
     sel.genes <- test.res %>% setNames(colnames(cm.norm)) %>% sort() %>% names()
   } else {
     checkPackageInstalled("pagoda2", details="for gene.selection='od'", cran=TRUE)
@@ -331,6 +333,7 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
   
   sel.genes %<>% setdiff(exclude.genes) %>% head(top.n.genes)
   # saveRDS(sel.genes, file.path(saved.folder, "sel_genes.RDS"))
+  print(sel.genes)
   return(sel.genes)
 }
 
