@@ -124,41 +124,31 @@ extractJointCountMatrix.Conos <- function(object, raw=TRUE) {
 
 #' @param transposed boolean If TRUE, return merged transposed count matrices (default=TRUE)
 #' @param sparse boolean If TRUE, return merged the sparse dgCMatrix matrix (default=TRUE)
-#' @rdname extractJointCountMatrix
-extractJointCountMatrix.Seurat <- function(object, raw = TRUE, transposed = TRUE, sparse = TRUE) {
-  # Choose assay and locate raw counts
-  if ("SCT" %in% names(object@assays)) {
-    assay_name <- "SCT"
-    raw_counts <- object@assays$SCT@counts
-  } else if ("RNA" %in% names(object@assays)) {
-    assay_name <- "RNA"
-    raw_counts <- object@assays$RNA@layers$counts
-  } else {
-    stop("Neither SCT nor RNA assay found in the Seurat object.")
+#' @rdname extractRawCountMatrices
+extractRawCountMatrices.Seurat <- function(object, transposed = TRUE) {
+  # Always pull from RNA assay counts (Assay5 style)
+  if (!"RNA" %in% names(object@assays)) {
+    stop("RNA assay not found in the Seurat object.")
   }
   
-  # Select data matrix
-  if (raw) {
-    dat <- raw_counts %>%
-      as("CsparseMatrix")
-    
-  } else {
-    # Try 'scale.data' slot, else fallback to 'data'
-    sls <- slotNames(object@assays[[assay_name]])
-    if ("scale.data" %in% sls) {
-      dat <- Seurat::GetAssayData(object, slot = "scale.data", assay = assay_name)
-    } else {
-      dat <- Seurat::GetAssayData(object, slot = "data", assay = assay_name)
-    }
+  counts_mat <- object@assays$RNA@layers$counts
+  
+  # Split cell names by sample.per.cell and extract counts per sample
+  cms <- split(names(object$sample.per.cell), object$sample.per.cell) %>%
+    lapply(function(cids) {
+      cols <- colnames(counts_mat) %in% cids
+      obj <- counts_mat[, cols, drop = FALSE]
+      colnames(obj) <- colnames(counts_mat)[cols]
+      rownames(obj) <- rownames(counts_mat)
+      obj
+    })
+  
+  # Transpose if requested
+  if (transposed) {
+    cms <- lapply(cms, Matrix::t)
   }
   
-  if (transposed){
-    dat %<>% Matrix::t()
-  }
-  if (is.matrix(dat) && sparse){
-    dat %<>% as("CsparseMatrix")
-  }
-  return(dat)
+  return(cms)
 }
 
 #' @rdname extractJointCountMatrix
