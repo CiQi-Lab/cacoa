@@ -282,9 +282,10 @@ Cacoa <- R6::R6Class("Cacoa", lock_objects=FALSE,
       min.cells.per.sample=10, min.samp.per.type=2, min.gene.frac=0.01,
       ref.level=self$ref.level, sample.groups=self$sample.groups,
       verbose=self$verbose, n.cores=self$n.cores, name="expression.shifts",
-      n.permutations=1000, genes=NULL, n.pcs=NULL, top.n.genes=NULL, ...) {
+      n.permutations=1000, genes=NULL, n.pcs=NULL, top.n.genes=NULL, saved.folder = saved.folder, ...) {
 
       count.matrices <- extractRawCountMatrices(self$data.object, transposed=TRUE)
+      saveRDS(count.matrices, file.path(saved.folder, "raw_counts_matrix.rds"))
 
       if (verbose) message("Filtering data... ")
       shift.inp <- filterExpressionDistanceInput(
@@ -293,6 +294,7 @@ Cacoa <- R6::R6Class("Cacoa", lock_objects=FALSE,
         min.cells.per.sample=min.cells.per.sample, min.samp.per.type=min.samp.per.type,
         min.gene.frac=min.gene.frac, genes=genes, verbose=verbose
       )
+      saveRDS(shift.inp, file.path(saved.folder, "filtered_counts_matrix.rds"))
       if (verbose) message("done!\n")
 
       if (!is.null(n.pcs)) {
@@ -310,6 +312,7 @@ Cacoa <- R6::R6Class("Cacoa", lock_objects=FALSE,
                   ". Consider increasing min.samp.per.type.")
         }
       }
+      
 
       self$test.results[[name]] <- shift.inp %$%
         estimateExpressionChange(
