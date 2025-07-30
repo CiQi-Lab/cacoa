@@ -320,7 +320,8 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
   } else if (gene.selection == "wilcox") {
     spg <- rownames(cm.norm) %>% split(sample.groups[.])
     test.res <- matrixTests::col_wilcoxon_twosample(cm.norm[spg[[1]],,drop=FALSE], cm.norm[spg[[2]],,drop=FALSE], exact=FALSE)$pvalue
-    print(test.res)
+    test.res <- sort(test.res)
+    print(head(test.res, 100))
     sel.genes <- test.res %>% setNames(colnames(cm.norm)) %>% sort() %>% names()
   } else {
     checkPackageInstalled("pagoda2", details="for gene.selection='od'", cran=TRUE)
@@ -333,7 +334,6 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
   
   sel.genes %<>% setdiff(exclude.genes) %>% head(top.n.genes)
   # saveRDS(sel.genes, file.path(saved.folder, "sel_genes.RDS"))
-  print(sel.genes)
   return(sel.genes)
 }
 
