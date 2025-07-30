@@ -15,7 +15,7 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
                                      dist=NULL, dist.type=c("shift", "total", "var"), verbose=FALSE,
                                      ref.level=NULL, n.permutations=1000, p.adjust.method="BH",
                                      top.n.genes=NULL, gene.selection="wilcox", n.pcs=NULL,
-                                     trim=0.2, n.cores=1, saved.folder = saved.folder, ...) {
+                                     trim=0.2, n.cores=1, saved.folder = NULL, ...) {
   
   dist.type <- match.arg(dist.type)
   dist <- parseDistance(dist, top.n.genes=top.n.genes, n.pcs=n.pcs)
