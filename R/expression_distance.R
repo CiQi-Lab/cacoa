@@ -128,6 +128,10 @@ estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, to
   }
   
   dist.mat[is.na(dist.mat)] <- 1;
+
+  dist.mat <- as.matrix(dist.mat)
+storage.mode(dist.mat) <- "numeric"
+  
   return(list(
   dist.mat   = dist.mat,
   cm.norm    = cm.norm,
