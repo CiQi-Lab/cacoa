@@ -35,7 +35,7 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
     cm.norm <- cm.per.type[[ct]]
     res <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sample.groups, dist=dist, n.pcs=n.pcs,
                                                     top.n.genes=top.n.genes, gene.selection=gene.selection, ...)
-    dist.mat <- res$dist.mat
+    dist.mat <- as.matrix(res$dist.mat)
     attr(dist.mat, 'n.cells') <- sample.type.table[ct, rownames(cm.norm)] # calculate how many cells there are
     
     cm.norm.sel    = res$cm.norm
