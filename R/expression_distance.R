@@ -340,8 +340,10 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
   gene.selection <- match.arg(gene.selection)
   
   if (gene.selection == "var") {
-    sel.genes <- estimateExplainedVariance(cm.norm, sample.groups=sample.groups) %>%
+    ev <- estimateExplainedVariance(cm.norm, sample.groups=sample.groups)
+    sel.genes <- ev %>%
       sort(decreasing=TRUE) %>% names()
+    test.res <- ev
   } else if (gene.selection == "wilcox") {
     spg <- rownames(cm.norm) %>% split(sample.groups[.])
     test.res <- matrixTests::col_wilcoxon_twosample(cm.norm[spg[[1]],,drop=FALSE], cm.norm[spg[[2]],,drop=FALSE], exact=FALSE)$pvalue
@@ -353,6 +355,7 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
     p2 <- pagoda2::Pagoda2$new(t(cm.norm), modelType="raw", verbose=FALSE, n.cores=1)
     p2$adjustVariance(verbose=FALSE)
     sel.genes <- p2$getOdGenes(Inf)
+    test.res <- p2$odVariance
   }
   
   sel.genes %<>% setdiff(exclude.genes) %>% head(top.n.genes)
