@@ -85,12 +85,13 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
 estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, top.n.genes=NULL, n.pcs=NULL,
                                                 gene.selection="wilcox", exclude.genes=NULL) {
   if (!is.null(top.n.genes)) {
-    sel.genes <- filterGenesForCellType(
+    out <- filterGenesForCellType(
       cm.norm, sample.groups=sample.groups, top.n.genes=top.n.genes, gene.selection=gene.selection,
       exclude.genes=exclude.genes
     )
+    sel.genes <- out$sel.genes
+    test.res <- out$test.res
     cm.norm <- cm.norm[,sel.genes,drop=FALSE]
-    print(dim(cm.norm))
   }
   
   if (!is.null(n.pcs)) {
@@ -115,7 +116,12 @@ estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, to
   }
   
   dist.mat[is.na(dist.mat)] <- 1;
-  return(dist.mat)
+  return(list(
+  dist.mat   = dist.mat,
+  cm.norm    = cm.norm,
+  test.res   = test.res,
+  sel.genes  = sel.genes
+))
 }
 
 #' @keywords internal
@@ -321,8 +327,6 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
     spg <- rownames(cm.norm) %>% split(sample.groups[.])
     test.res <- matrixTests::col_wilcoxon_twosample(cm.norm[spg[[1]],,drop=FALSE], cm.norm[spg[[2]],,drop=FALSE], exact=FALSE)$pvalue
     sel.genes <- test.res %>% setNames(colnames(cm.norm)) %>% sort() %>% names()
-    test.res <- sort(test.res)
-    print(head(test.res, 100))
   } else {
     checkPackageInstalled("pagoda2", details="for gene.selection='od'", cran=TRUE)
     # TODO: we need to extract the OD function from Pagoda and scITD into sccore
@@ -334,7 +338,11 @@ filterGenesForCellType <- function(cm.norm, sample.groups, top.n.genes=500, gene
   
   sel.genes %<>% setdiff(exclude.genes) %>% head(top.n.genes)
   # saveRDS(sel.genes, file.path(saved.folder, "sel_genes.RDS"))
-  return(sel.genes)
+  return(list(
+  test.res   = test.res,
+  sel.genes  = sel.genes
+))
+
 }
 
 #' @keywords internal
