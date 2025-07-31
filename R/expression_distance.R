@@ -53,8 +53,11 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
         droplevels() %>% {setNames(sample(.), names(.))}
       dm <- dist.mat
       if (!is.null(top.n.genes) && (gene.selection != "od")) {
-        dm <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sg.shuff, dist=dist, n.pcs=n.pcs,
+        dm_out <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sg.shuff, dist=dist, n.pcs=n.pcs,
                                                   top.n.genes=top.n.genes, gene.selection=gene.selection, ...)
+        dm <- dm_out$dist.mat
+        dm <- as.matrix(dm)
+        storage.mode(dm) <- "numeric"
       }
       
       estimateExpressionShiftsByDistMat(dm, sg.shuff, norm.type=norm.type, return.type=r.type, ref.level=ref.level) %>%
