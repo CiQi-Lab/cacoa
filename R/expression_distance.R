@@ -33,9 +33,15 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
   saveRDS(cm.per.type, file.path(saved.folder, "pseudobulk_counts_matrix.rds")) 
   res.per.type <- levels(cell.groups) %>% sccore::sn() %>% plapply(function(ct) {
     cm.norm <- cm.per.type[[ct]]
-    dist.mat <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sample.groups, dist=dist, n.pcs=n.pcs,
+    res <- estimateExpressionShiftsForCellType(cm.norm, sample.groups=sample.groups, dist=dist, n.pcs=n.pcs,
                                                     top.n.genes=top.n.genes, gene.selection=gene.selection, ...)
+    dist.mat <- res$dist.mat
     attr(dist.mat, 'n.cells') <- sample.type.table[ct, rownames(cm.norm)] # calculate how many cells there are
+    
+    cm.norm.sel    = res$cm.norm
+    test.res   = res$test.res
+    sel.genes  = res$sel.genes
+    
     
     dists <- estimateExpressionShiftsByDistMat(dist.mat, sample.groups, norm.type=norm.type,
                                                return.type=r.type, ref.level=ref.level)
@@ -57,13 +63,14 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
     pvalue <- (sum(randomized.dists >= obs.diff) + 1) / (sum(!is.na(randomized.dists)) + 1)
     dists <- dists - median(randomized.dists, na.rm=TRUE)
     
-    list(cm.norm = cm.norm, dists=dists, dist.mat=dist.mat, pvalue=pvalue, randomized.dists = randomized.dists)
+    list(cm.norm = cm.norm, cm.norm.sel = cm.norm.sel, dists=dists, dist.mat=dist.mat, pvalue=pvalue, randomized.dists = randomized.dists, test.res = test.res, sel.genes = sel.genes)
   }, progress=verbose, n.cores=n.cores, mc.preschedule=TRUE, mc.allow.recursive=TRUE, fail.on.error=TRUE)
   
   if (verbose) message("Done!\n")
   
   cm.norm <- lapply(res.per.type, `[[`, "cm.norm")
-  saveRDS(cm.norm, file.path(saved.folder, "pseudobulk_counts_matrix_after_gene_filter.rds"))
+  cm.norm.sel <- lapply(res.per.type, `[[`, "cm.norm.sel")
+  saveRDS(cm.norm.sel, file.path(saved.folder, "pseudobulk_counts_matrix_after_gene_filter.rds"))
   pvalues <- sapply(res.per.type, `[[`, "pvalue")
   saveRDS(pvalues, file.path(saved.folder, "exp_pvalues.rds"))
   dists.per.type <- lapply(res.per.type, `[[`, "dists")
@@ -72,12 +79,16 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
   saveRDS(randomized.dists, file.path(saved.folder, "randomized_dists_per_ct.rds"))
   p.dist.info <- lapply(res.per.type, `[[`, "dist.mat")
   saveRDS(p.dist.info, file.path(saved.folder, "sample_distances_per_ct.rds"))
-  
+  test.res <- sapply(res.per.type, `[[`, "test.res")
+  saveRDS(test.res, file.path(saved.folder, "wil_testres.rds"))
+  sel.genes <- sapply(res.per.type, `[[`, "sel.genes")
+  saveRDS(sel.genes, file.path(saved.folder, "sel_genes.rds"))
   padjust <- p.adjust(pvalues, method=p.adjust.method)
   saveRDS(padjust, file.path(saved.folder, "exp_pvalues_adj.rds"))
+
   
   return(list(cm.per.type = cm.per.type, dists.per.type=dists.per.type, p.dist.info=p.dist.info, randomized.dists = randomized.dists, sample.groups=sample.groups,
-              cell.groups=cell.groups, pvalues=pvalues, padjust=padjust))
+              cell.groups=cell.groups, pvalues=pvalues, padjust=padjust, test.res = test.res, sel.genes = sel.genes))
 }
 
 
