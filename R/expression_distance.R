@@ -99,6 +99,10 @@ estimateExpressionChange <- function(cm.per.type, sample.groups, cell.groups, sa
 #' @keywords internal
 estimateExpressionShiftsForCellType <- function(cm.norm, sample.groups, dist, top.n.genes=NULL, n.pcs=NULL,
                                                 gene.selection="wilcox", exclude.genes=NULL) {
+
+  test.res <- NULL
+  sel.genes <- colnames(cm.norm)
+  
   if (!is.null(top.n.genes)) {
     out <- filterGenesForCellType(
       cm.norm, sample.groups=sample.groups, top.n.genes=top.n.genes, gene.selection=gene.selection,
